@@ -22,11 +22,14 @@ EndBlocks = 35      # Number of blocks to wait before sending to Whisper
 
 class StreamHandler:
     def __init__(self, assist=None):
-        if assist == None:
-            class fakeAsst(): 
-                running, talking, analyze = True, False, None
+        if assist is None:
+            class fakeAsst():
+                running = True
+                talking = False
+                analyze = True
             self.asst = fakeAsst()
-        else: self.asst = assist
+        else:
+            self.asst = assist
         self.running = True
         self.padding = 0
         self.prevblock = self.buffer = np.zeros((0,1))
@@ -36,9 +39,8 @@ class StreamHandler:
         print("\033[90m Done.\033[0m")
         self.conversation = Conversation()
 
-
     def callback(self, indata, frames, time, status):
-        #if status: print(status) # for debugging, prints stream errors.
+        # if status: print(status) # for debugging, prints stream errors.
         if any(indata):
             freq = np.argmax(np.abs(np.fft.rfft(indata[:, 0]))) * SampleRate / frames
             if indata.max() > Threshold and Vocals[0] <= freq <= Vocals[1] and not self.asst.talking:
@@ -66,9 +68,14 @@ class StreamHandler:
     def process(self):
         if self.fileready:
             print("\n\033[90mTranscribing..\033[0m")
-            result = self.model.transcribe('dictate.wav',fp16=False,language='en' if English else '',task='translate' if Translate else 'transcribe')
+            result = self.model.transcribe('dictate.wav',
+                                           fp16=False,
+                                           language='en' if English else '',
+                                           task='translate' if Translate else 'transcribe'
+                                           )
             print(f"\033[1A\033[2K\033[0G{result['text']}")
-            if self.asst.analyze != None:
+
+            if self.asst.analyze is not None:
                 self.asst.analyze(result['text'])
             self.fileready = False
             return result
@@ -80,8 +87,8 @@ class StreamHandler:
 
             for cmd in chatgpt_commands:
                 if cmd in send_text:
-                    print("\n ChatGPT is responding... \n")
-                    send_text.replace(cmd, "")    
+                    print("\nChatGPT is responding... \n")
+                    send_text.replace(cmd, "")   
                     print("\033[0;33m", self.conversation.chat(send_text), "\033[0m")
                     print("")
             reset_commands = [
@@ -114,7 +121,7 @@ def main():
     except (KeyboardInterrupt, SystemExit):
         pass
     finally:
-        print("\n\033[93mQuitting..\033[0m")
+        print("Quitting...")
         if os.path.exists('dictate.wav'):
             os.remove('dictate.wav')
 
